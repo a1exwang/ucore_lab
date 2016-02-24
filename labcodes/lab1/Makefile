@@ -185,6 +185,12 @@ $(UCOREIMG): $(kernel) $(bootblock)
 
 $(call create_target,ucore.img)
 
+# establish bochs
+BOCHS_WITH_DEBUG := bochsd
+BOCHS_WITH_DEBUG_FLAGS := 'ata0-master: type=disk, path="$(UCOREIMG)", mode=flat, cylinders=1, heads=1, spt=1' 'boot: disk' 'display_library: sdl2' 'megs: 128' 
+BOCHS_WITH_GDB := bochs
+BOCHS_WITH_GDB_FLAGS := 'ata0-master: type=disk, path="$(UCOREIMG)", mode=flat, cylinders=1, heads=1, spt=1' 'boot: disk' 'display_library: sdl2' 'megs: 128' 'gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0'
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 $(call finish_all)
@@ -211,6 +217,12 @@ qemu-mon: $(UCOREIMG)
 	$(V)$(QEMU)  -no-reboot -monitor stdio -hda $< -serial null
 qemu: $(UCOREIMG)
 	$(V)$(QEMU) -no-reboot -parallel stdio -hda $< -serial null
+gdb: $(UCOREIMG)
+	$(V)$(QEMU) -S -s -parallel stdio -hda $< -serial null
+bochs: $(UCOREIMG)
+	$(V)$(BOCHS_WITH_DEBUG) -q $(BOCHS_WITH_DEBUG_FLAGS)
+bgdb: $(UCOREIMG)
+	$(V)$(BOCHS_WITH_GDB) -q $(BOCHS_WITH_GDB_FLAGS)
 log: $(UCOREIMG)
 	$(V)$(QEMU) -no-reboot -d int,cpu_reset  -D q.log -parallel stdio -hda $< -serial null
 qemu-nox: $(UCOREIMG)
