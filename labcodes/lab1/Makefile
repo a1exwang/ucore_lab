@@ -147,7 +147,8 @@ $(kernel): $(KOBJS)
 	$(V)$(LD) $(LDFLAGS) -T tools/kernel.ld -o $@ $(KOBJS)
 	@$(OBJDUMP) -S $@ > $(call asmfile,kernel)
 	@$(OBJDUMP) -t $@ | $(SED) '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(call symfile,kernel)
-
+	@$(OBJCOPY) -S -O binary bin/kernel $(call outfile,kernel)
+	
 $(call create_target,kernel)
 
 # -------------------------------------------------------------------
