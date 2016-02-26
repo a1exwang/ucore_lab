@@ -118,7 +118,7 @@ default_init_memmap(struct Page *base, size_t n) {
 		 *               (4.2) If we can not find a free block (block size >=n), then return NULL */
 static struct Page *
 default_alloc_pages(size_t n) {
-	//cprintf("prepare to alloc_pages: %d\n", n); print_freelist();
+    //cprintf("prepare to alloc_pages: %d\n", n); print_freelist();
     assert(n > 0);
     if (n > nr_free) {
         return NULL;
