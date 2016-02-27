@@ -80,28 +80,40 @@ static int nr_process = 0;
 void kernel_thread_entry(void);
 void forkrets(struct trapframe *tf);
 void switch_to(struct context *from, struct context *to);
+static int get_pid();
 
 // alloc_proc - alloc a proc_struct and init all fields of proc_struct
 static struct proc_struct *
 alloc_proc(void) {
     struct proc_struct *proc = kmalloc(sizeof(struct proc_struct));
     if (proc != NULL) {
-    //LAB4:EXERCISE1 YOUR CODE
-    /*
-     * below fields in proc_struct need to be initialized
-     *       enum proc_state state;                      // Process state
-     *       int pid;                                    // Process ID
-     *       int runs;                                   // the running times of Proces
-     *       uintptr_t kstack;                           // Process kernel stack
-     *       volatile bool need_resched;                 // bool value: need to be rescheduled to release CPU?
-     *       struct proc_struct *parent;                 // the parent process
-     *       struct mm_struct *mm;                       // Process's memory management field
-     *       struct context context;                     // Switch here to run process
-     *       struct trapframe *tf;                       // Trap frame for current interrupt
-     *       uintptr_t cr3;                              // CR3 register: the base addr of Page Directroy Table(PDT)
-     *       uint32_t flags;                             // Process flag
-     *       char name[PROC_NAME_LEN + 1];               // Process name
-     */
+		//LAB4:EXERCISE1 2014011367
+		/*
+		 * below fields in proc_struct need to be initialized
+		 *       enum proc_state state;                      // Process state
+		 *       int pid;                                    // Process ID
+		 *       int runs;                                   // the running times of Proces
+		 *       uintptr_t kstack;                           // Process kernel stack
+		 *       volatile bool need_resched;                 // bool value: need to be rescheduled to release CPU?
+		 *       struct proc_struct *parent;                 // the parent process
+		 *       struct mm_struct *mm;                       // Process's memory management field
+		 *       struct context context;                     // Switch here to run process
+		 *       struct trapframe *tf;                       // Trap frame for current interrupt
+		 *       uintptr_t cr3;                              // CR3 register: the base addr of Page Directroy Table(PDT)
+		 *       uint32_t flags;                             // Process flag
+		 *       char name[PROC_NAME_LEN + 1];               // Process name
+		 */
+
+    	proc->state = PROC_UNINIT;
+    	proc->runs = 0;
+    	proc->need_resched = 1;
+    	proc->parent = current;
+    	proc->mm = NULL;
+    	memset(&proc->context, 0, sizeof(struct context));
+    	proc->tf = NULL;
+    	memset(proc->name, 0, sizeof(proc->name));
+    	proc->cr3 = boot_cr3;
+    	proc->flags = 0;
     }
     return proc;
 }
@@ -240,6 +252,9 @@ put_kstack(struct proc_struct *proc) {
 static int
 copy_mm(uint32_t clone_flags, struct proc_struct *proc) {
     assert(current->mm == NULL);
+//	if (current->mm == NULL) {
+//		current->mm = mm_create();
+//	}
     /* do nothing in this project */
     return 0;
 }
@@ -296,6 +311,29 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     //    5. insert proc_struct into hash_list && proc_list
     //    6. call wakeup_proc to make the new child process RUNNABLE
     //    7. set ret vaule using child proc's pid
+    proc = alloc_proc();
+    if (proc == NULL) {
+    	panic("proc.c:do_fork: alloc_proc failed!!!");
+    }
+    if (setup_kstack(proc) < 0) {
+    	ret = -E_NO_MEM;
+    	goto bad_fork_cleanup_kstack;
+    }
+
+    if (copy_mm(clone_flags, proc) < 0) {
+    	ret = -E_NO_MEM;
+    	goto bad_fork_cleanup_proc;
+    }
+
+    copy_thread(proc, proc->kstack + KSTACKSIZE, tf);
+
+    proc->pid = get_pid();
+    list_add(&proc_list, &proc->list_link);
+    hash_proc(proc);
+    wakeup_proc(proc);
+
+    ret = proc->pid;
+
 fork_out:
     return ret;
 

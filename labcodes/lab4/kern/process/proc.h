@@ -36,6 +36,7 @@ struct context {
 #define PROC_NAME_LEN               15
 #define MAX_PROCESS                 4096
 #define MAX_PID                     (MAX_PROCESS * 2)
+#define KERNEL_PROCESS_STACK_SIZE	(1024*1024)
 
 extern list_entry_t proc_list;
 
