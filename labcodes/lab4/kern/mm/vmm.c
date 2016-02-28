@@ -146,10 +146,8 @@ mm_destroy(struct mm_struct *mm) {
     list_entry_t *list = &(mm->mmap_list), *le;
     while ((le = list_next(list)) != list) {
         list_del(le);
-        //kfree(le2vma(le, list_link),sizeof(struct vma_struct));  //kfree vma
         kfree(le2vma(le, list_link));
     }
-    //kfree(mm, sizeof(struct mm_struct)); //kfree mm
     kfree(mm);
     mm=NULL;
 }

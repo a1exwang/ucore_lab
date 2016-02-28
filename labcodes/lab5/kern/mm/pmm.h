@@ -141,6 +141,11 @@ page_ref_dec(struct Page *page) {
     return page->ref;
 }
 
+static inline void *
+pa2kva(uintptr_t pa) {
+	return page2kva(pa2page(pa));
+}
+
 extern char bootstack[], bootstacktop[];
 
 #endif /* !__KERN_MM_PMM_H__ */

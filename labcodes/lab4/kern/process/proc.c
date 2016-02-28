@@ -319,7 +319,6 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     	ret = -E_NO_MEM;
     	goto bad_fork_cleanup_kstack;
     }
-
     if (copy_mm(clone_flags, proc) < 0) {
     	ret = -E_NO_MEM;
     	goto bad_fork_cleanup_proc;
@@ -402,6 +401,7 @@ proc_init(void) {
 void
 cpu_idle(void) {
     while (1) {
+    	cprintf("idle...\n");
         if (current->need_resched) {
             schedule();
         }
