@@ -462,7 +462,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
 
     if (*ptep == 0) {
     	//(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
-    	struct Page *page = pgdir_alloc_page(mm->pgdir, addr, perm);
+    	struct Page *page = pgdir_alloc_page(mm->pgdir, addr, perm, mm);
     	if (!page) {
     		panic("vmm.c::do_page_fault: pgdir_alloc_page returns 0\n");
     	}

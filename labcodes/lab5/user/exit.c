@@ -21,6 +21,7 @@ main(void) {
     else {
         cprintf("I am parent, fork a child pid %d\n",pid);
     }
+
     assert(pid > 0);
     cprintf("I am the parent, waiting now..\n");
 
