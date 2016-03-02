@@ -3,9 +3,20 @@
 
 int magic = -0x10384;
 
+
+extern void rpl_lt_dpl();
+// RPL < DPL, must run in
+void rpl_lt_dpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"((2 << 3) | 3));
+}
 int
 main(void) {
     int pid, code;
+
+    cprintf("checking rpl_lt_dpl\n");
+    rpl_lt_dpl();
+
     cprintf("I am the parent. Forking the child...\n");
     if ((pid = fork()) == 0) {
         cprintf("I am the child.\n");
@@ -21,6 +32,8 @@ main(void) {
     else {
         cprintf("I am parent, fork a child pid %d\n",pid);
     }
+
+
 
     assert(pid > 0);
     cprintf("I am the parent, waiting now..\n");

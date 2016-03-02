@@ -40,7 +40,7 @@ void rpl_eq_cpl() {
 // RPL < DPL, must run in
 void rpl_lt_dpl() {
 	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
-			: : "i"(KERNEL_DS));
+			: : "i"((2 << 3) | 3));
 }
 
 // RPL == DPL
@@ -86,7 +86,7 @@ kern_init(void) {
     //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test()
     // user/kernel mode switch test
     //lab1_switch_test();
-    rpl_gt_dpl();
+    //rpl_gt_dpl();
     
     cpu_idle();                 // run idle process
 }
