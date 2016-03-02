@@ -9,9 +9,72 @@
 #include <intr.h>
 #include <pmm.h>
 #include <kmonitor.h>
+#include <memlayout.h>
 int kern_init(void) __attribute__((noreturn));
 void grade_backtrace(void);
 static void lab1_switch_test(void);
+
+struct segdesc {
+    unsigned sd_lim_15_0 : 16;      // low bits of segment limit
+    unsigned sd_base_15_0 : 16;     // low bits of segment base address
+    unsigned sd_base_23_16 : 8;     // middle bits of segment base address
+    unsigned sd_type : 4;           // segment type (see STS_ constants)
+    unsigned sd_s : 1;              // 0 = system, 1 = application
+    unsigned sd_dpl : 2;            // descriptor Privilege Level
+    unsigned sd_p : 1;              // present
+    unsigned sd_lim_19_16 : 4;      // high bits of segment limit
+    unsigned sd_avl : 1;            // unused (available for software use)
+    unsigned sd_rsv1 : 1;           // reserved
+    unsigned sd_db : 1;             // 0 = 16-bit segment, 1 = 32-bit segment
+    unsigned sd_g : 1;              // granularity: limit scaled by 4K when set
+    unsigned sd_base_31_24 : 8;     // high bits of segment base address
+};
+//#define STA_X           0x8         // Executable segment
+//#define STA_E           0x4         // Expand down (non-executable segments)
+//#define STA_C           0x4         // Conforming code segment (executable only)
+//#define STA_W           0x2         // Writeable (non-executable segments)
+//#define USER_CS     ((GD_UTEXT) | DPL_USER)
+//#define USER_DS     ((GD_UDATA) | DPL_USER)
+//#define STA_R           0x2         // Readable (executable segments)
+//#define STA_A           0x1         // Accessed
+//
+//#define SEG(type, base, lim, dpl)                           \
+//    (struct segdesc) {                                      \
+//        ((lim) >> 12) & 0xffff, (base) & 0xffff,            \
+//        ((base) >> 16) & 0xff, type, 1, dpl, 1,             \
+//        (unsigned)(lim) >> 28, 0, 0, 1, 1,                  \
+//        (unsigned) (base) >> 24                             \
+//    }
+
+
+void print_cpl() {
+	uint16_t reg1;
+
+	asm volatile ("mov %%cs, %0;"
+	            : "=m"(reg1));
+	cprintf("*******CPL = %d\n", reg1 & 3);
+}
+
+void rpl_gt_cpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(USER_DS));
+}
+
+void rpl_eq_cpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(KERNEL_DS));
+}
+
+void rpl_eq_dpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(KERNEL_DS));
+}
+
+// RPL > DPL
+void rpl_gt_dpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(KERNEL_DS_RPL_3));
+}
 
 int
 kern_init(void) {
@@ -23,14 +86,20 @@ kern_init(void) {
     const char *message = "(THU.CST) os is loading ...";
     cprintf("%s\n\n", message);
 
+    print_cpl();
+
     print_kerninfo();
 
     grade_backtrace();
 
     pmm_init();                 // init physical memory management
 
+
     pic_init();                 // init interrupt controller
     idt_init();                 // init interrupt descriptor table
+    cprintf("check rpl dpl cpl\n");
+
+    rpl_gt_dpl();
 
     clock_init();               // init clock interrupt
     intr_enable();              // enable irq interrupt

@@ -80,7 +80,9 @@ gdt:
     SEG_NULLASM                                     # null seg
     SEG_ASM(STA_X|STA_R, 0x0, 0xffffffff)           # code seg for bootloader and kernel
     SEG_ASM(STA_W, 0x0, 0xffffffff)                 # data seg for bootloader and kernel
+    SEG_NULLASM   # code seg for user
+    SEG_NULLASM          # data seg for user
 
 gdtdesc:
-    .word 0x17                                      # sizeof(gdt) - 1
+    .word 0x27                                      # sizeof(gdt) - 1
     .long gdt                                       # address gdt

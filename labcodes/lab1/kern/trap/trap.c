@@ -153,6 +153,10 @@ static void
 trap_dispatch(struct trapframe *tf) {
     char c;
 
+    if (tf->tf_trapno != IRQ_OFFSET + IRQ_TIMER) {
+    	cprintf("trap!!!\n");
+    }
+
     switch (tf->tf_trapno) {
     case IRQ_OFFSET + IRQ_TIMER:
         /* LAB1 YOUR CODE : STEP 3 */

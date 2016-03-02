@@ -18,6 +18,44 @@ int kern_init(void) __attribute__((noreturn));
 void grade_backtrace(void);
 static void lab1_switch_test(void);
 
+
+void print_cpl() {
+	uint16_t reg1;
+
+	asm volatile ("mov %%cs, %0;"
+	            : "=m"(reg1));
+	cprintf("*******CPL = %d\n", reg1 & 3);
+}
+
+void rpl_gt_cpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(USER_DS));
+}
+
+void rpl_eq_cpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(KERNEL_DS));
+}
+
+// RPL < DPL, must run in
+void rpl_lt_dpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(KERNEL_DS));
+}
+
+// RPL == DPL
+void rpl_eq_dpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(KERNEL_DS));
+}
+
+// RPL > DPL
+void rpl_gt_dpl() {
+	asm volatile ("mov %0, %%ax;mov %%ax, %%ds;"
+			: : "i"(KERNEL_DS_RPL_3));
+}
+
+
 int
 kern_init(void) {
     extern char edata[], end[];
@@ -48,6 +86,7 @@ kern_init(void) {
     //LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test()
     // user/kernel mode switch test
     //lab1_switch_test();
+    rpl_gt_dpl();
     
     cpu_idle();                 // run idle process
 }

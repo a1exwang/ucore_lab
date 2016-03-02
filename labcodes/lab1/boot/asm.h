@@ -13,7 +13,6 @@
     .byte (((base) >> 16) & 0xff), (0x90 | (type)),             \
         (0xC0 | (((lim) >> 28) & 0xf)), (((base) >> 24) & 0xff)
 
-
 /* Application segment type bits */
 #define STA_X       0x8     // Executable segment
 #define STA_E       0x4     // Expand down (non-executable segments)
