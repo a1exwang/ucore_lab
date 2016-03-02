@@ -235,7 +235,7 @@ trap_dispatch(struct trapframe *tf) {
          */
 		tick_count++;
 		if (tick_count % TICK_NUM == 0) {
-			print_ticks();
+			//print_ticks();
 		}
 
         /* LAB5 YOUR CODE */
@@ -287,6 +287,7 @@ trap(struct trapframe *tf) {
     }
     else {
         // keep a trapframe chain in stack
+    	// 这步备份tf主要是当发生中断重入时能返回到上一层中断
         struct trapframe *otf = current->tf;
         current->tf = tf;
     

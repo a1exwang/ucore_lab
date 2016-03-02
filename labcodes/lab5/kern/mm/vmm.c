@@ -530,3 +530,21 @@ user_mem_check(struct mm_struct *mm, uintptr_t addr, size_t len, bool write) {
     return KERN_ACCESS(addr, addr + len);
 }
 
+void
+print_vma(struct mm_struct *mm, const char *proc_name) {
+    list_entry_t *list = &(mm->mmap_list);
+	list_entry_t *le = list;
+
+	if (proc_name != NULL) {
+		cprintf("[vmm] Print all vma, for %s...\n", proc_name);
+	}
+	else {
+		cprintf("[vmm] Print all vma...\n");
+	}
+
+	while ((le = list_next(le)) != list) {
+		struct vma_struct *vma = le2vma(le, list_link);
+		cprintf("\tStart: 0x%08x, End: 0x%08x, Flags: 0x%x\n", vma->vm_start, vma->vm_end, vma->vm_flags);
+	}
+}
+

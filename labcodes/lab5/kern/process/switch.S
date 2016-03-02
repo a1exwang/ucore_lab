@@ -4,7 +4,7 @@ switch_to:                      # switch_to(from, to)
 
     # save from's registers
     movl 4(%esp), %eax          # eax points to from
-    popl 0(%eax)                # save eip !popl
+    popl 0(%eax)                # save eip !popl, 这里的pop和下面的push是对称的, 这里保存返回地址到tf, 下面是从压入返回地址, 用ret返回
     movl %esp, 4(%eax)
     movl %ebx, 8(%eax)
     movl %ecx, 12(%eax)

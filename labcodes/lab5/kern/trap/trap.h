@@ -58,6 +58,7 @@ struct pushregs {
 };
 
 struct trapframe {
+	/* 前面这几个寄存器的顺序必须和trapentry.S中压栈的顺序相反 */
     struct pushregs tf_regs;
     uint16_t tf_gs;
     uint16_t tf_padding0;
@@ -68,7 +69,7 @@ struct trapframe {
     uint16_t tf_ds;
     uint16_t tf_padding3;
     uint32_t tf_trapno;
-    /* below here defined by x86 hardware */
+    /* below here defined by x86 hardware(有些中断没有错误号, trapentry.S中压入了0) */
     uint32_t tf_err;
     uintptr_t tf_eip;
     uint16_t tf_cs;

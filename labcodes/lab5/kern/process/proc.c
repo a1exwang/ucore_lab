@@ -411,7 +411,9 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     	goto bad_fork_cleanup_proc;
     }
 
-    copy_thread(proc, proc->kstack + KSTACKSIZE, tf);
+    proc->parent = current;
+
+    copy_thread(proc, stack, tf);
 
     proc->pid = get_pid();
     hash_proc(proc);
@@ -428,7 +430,6 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     //if (current->wait_state != 0) {
     //	panic("current wait_state is not 0\n");
     //}
-    proc->parent = current;
     set_links(proc);
 
 fork_out:
@@ -615,7 +616,9 @@ load_icode(unsigned char *binary, size_t size) {
     mm_count_inc(mm);
     current->mm = mm;
     current->cr3 = PADDR(mm->pgdir);
+    print_vma(mm, NULL);
     lcr3(PADDR(mm->pgdir));
+    print_pgdir();
 
     //(6) setup trapframe for user environment
     struct trapframe *tf = current->tf;
