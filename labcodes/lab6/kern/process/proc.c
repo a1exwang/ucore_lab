@@ -81,34 +81,39 @@ static int nr_process = 0;
 void kernel_thread_entry(void);
 void forkrets(struct trapframe *tf);
 void switch_to(struct context *from, struct context *to);
+static int get_pid();
 
 // alloc_proc - alloc a proc_struct and init all fields of proc_struct
 static struct proc_struct *
 alloc_proc(void) {
     struct proc_struct *proc = kmalloc(sizeof(struct proc_struct));
     if (proc != NULL) {
-    //LAB4:EXERCISE1 YOUR CODE
-    /*
-     * below fields in proc_struct need to be initialized
-     *       enum proc_state state;                      // Process state
-     *       int pid;                                    // Process ID
-     *       int runs;                                   // the running times of Proces
-     *       uintptr_t kstack;                           // Process kernel stack
-     *       volatile bool need_resched;                 // bool value: need to be rescheduled to release CPU?
-     *       struct proc_struct *parent;                 // the parent process
-     *       struct mm_struct *mm;                       // Process's memory management field
-     *       struct context context;                     // Switch here to run process
-     *       struct trapframe *tf;                       // Trap frame for current interrupt
-     *       uintptr_t cr3;                              // CR3 register: the base addr of Page Directroy Table(PDT)
-     *       uint32_t flags;                             // Process flag
-     *       char name[PROC_NAME_LEN + 1];               // Process name
-     */
-     //LAB5 YOUR CODE : (update LAB4 steps)
-    /*
-     * below fields(add in LAB5) in proc_struct need to be initialized	
-     *       uint32_t wait_state;                        // waiting state
-     *       struct proc_struct *cptr, *yptr, *optr;     // relations between processes
-	 */
+		//LAB4:EXERCISE1 2014011367
+		/*
+		 * below fields in proc_struct need to be initialized
+		 *       enum proc_state state;                      // Process state
+		 *       int pid;                                    // Process ID
+		 *       int runs;                                   // the running times of Proces
+		 *       uintptr_t kstack;                           // Process kernel stack
+		 *       volatile bool need_resched;                 // bool value: need to be rescheduled to release CPU?
+		 *       struct proc_struct *parent;                 // the parent process
+		 *       struct mm_struct *mm;                       // Process's memory management field
+		 *       struct context context;                     // Switch here to run process
+		 *       struct trapframe *tf;                       // Trap frame for current interrupt
+		 *       uintptr_t cr3;                              // CR3 register: the base addr of Page Directroy Table(PDT)
+		 *       uint32_t flags;                             // Process flag
+		 *       char name[PROC_NAME_LEN + 1];               // Process name
+		 */
+    	memset(proc, 0, sizeof(struct proc_struct));
+    	proc->state = PROC_UNINIT;
+    	proc->runs = 0;
+    	// 记录一下这里的大坑, 如果need_resched设为1, 那么fork之后进程第一次运行的时候进行第一次系统调用就会被打断,
+    	// 会导致forktest这个测试用例中32个进程每个进程先打出一个'I'(因为printf使用cputc实现的), 通不过测试.
+    	proc->need_resched = 0;
+    	proc->mm = NULL;
+    	proc->tf = NULL;
+    	proc->cr3 = boot_cr3;
+    	proc->flags = 0;
      //LAB6 YOUR CODE : (update LAB5 steps)
     /*
      * below fields(add in LAB6) in proc_struct need to be initialized
@@ -405,7 +410,30 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     //    5. insert proc_struct into hash_list && proc_list
     //    6. call wakeup_proc to make the new child process RUNNABLE
     //    7. set ret vaule using child proc's pid
+    proc = alloc_proc();
+    if (proc == NULL) {
+    	panic("proc.c:do_fork: alloc_proc failed!!!");
+    }
+    if (setup_kstack(proc) < 0) {
+    	ret = -E_NO_MEM;
+    	goto bad_fork_cleanup_kstack;
+    }
+    if (copy_mm(clone_flags, proc) < 0) {
+    	ret = -E_NO_MEM;
+    	goto bad_fork_cleanup_proc;
+    }
 
+    proc->parent = current;
+
+    copy_thread(proc, stack, tf);
+
+    proc->pid = get_pid();
+    hash_proc(proc);
+    set_links(proc);
+    list_init(&proc->run_link);
+    wakeup_proc(proc);
+
+    ret = proc->pid;
 	//LAB5 YOUR CODE : (update LAB4 steps)
    /* Some Functions
     *    set_links:  set the relation links of process.  ALSO SEE: remove_links:  lean the relation links of process 
@@ -413,7 +441,9 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
 	*    update step 1: set child proc's parent to current process, make sure current process's wait_state is 0
 	*    update step 5: insert proc_struct into hash_list && proc_list, set the relation links of process
     */
-	
+    //if (current->wait_state != 0) {
+    //	panic("current wait_state is not 0\n");
+    //}
 fork_out:
     return ret;
 
@@ -546,7 +576,7 @@ load_icode(unsigned char *binary, size_t size) {
         end = ph->p_va + ph->p_filesz;
      //(3.6.1) copy TEXT/DATA section of bianry program
         while (start < end) {
-            if ((page = pgdir_alloc_page(mm->pgdir, la, perm)) == NULL) {
+            if ((page = pgdir_alloc_page(mm->pgdir, la, perm, mm)) == NULL) {
                 goto bad_cleanup_mmap;
             }
             off = start - la, size = PGSIZE - off, la += PGSIZE;
@@ -573,7 +603,7 @@ load_icode(unsigned char *binary, size_t size) {
             assert((end < la && start == end) || (end >= la && start == la));
         }
         while (start < end) {
-            if ((page = pgdir_alloc_page(mm->pgdir, la, perm)) == NULL) {
+            if ((page = pgdir_alloc_page(mm->pgdir, la, perm, mm)) == NULL) {
                 goto bad_cleanup_mmap;
             }
             off = start - la, size = PGSIZE - off, la += PGSIZE;
@@ -589,21 +619,23 @@ load_icode(unsigned char *binary, size_t size) {
     if ((ret = mm_map(mm, USTACKTOP - USTACKSIZE, USTACKSIZE, vm_flags, NULL)) != 0) {
         goto bad_cleanup_mmap;
     }
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-2*PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-3*PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER) != NULL);
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-PGSIZE , PTE_USER, mm) != NULL);
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-2*PGSIZE , PTE_USER, mm) != NULL);
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-3*PGSIZE , PTE_USER, mm) != NULL);
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER, mm) != NULL);
     
     //(5) set current process's mm, sr3, and set CR3 reg = physical addr of Page Directory
     mm_count_inc(mm);
     current->mm = mm;
     current->cr3 = PADDR(mm->pgdir);
+    print_vma(mm, NULL);
     lcr3(PADDR(mm->pgdir));
+    print_pgdir();
 
     //(6) setup trapframe for user environment
     struct trapframe *tf = current->tf;
     memset(tf, 0, sizeof(struct trapframe));
-    /* LAB5:EXERCISE1 YOUR CODE
+    /* LAB5:EXERCISE1 2014011367
      * should set tf_cs,tf_ds,tf_es,tf_ss,tf_esp,tf_eip,tf_eflags
      * NOTICE: If we set trapframe correctly, then the user level process can return to USER MODE from kernel. So
      *          tf_cs should be USER_CS segment (see memlayout.h)
@@ -612,6 +644,12 @@ load_icode(unsigned char *binary, size_t size) {
      *          tf_eip should be the entry point of this binary program (elf->e_entry)
      *          tf_eflags should be set to enable computer to produce Interrupt
      */
+    tf->tf_cs = USER_CS;
+    tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
+    tf->tf_esp = USTACKTOP;
+    tf->tf_eip = elf->e_entry;
+    tf->tf_eflags = FL_IF;
+
     ret = 0;
 out:
     return ret;

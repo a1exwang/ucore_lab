@@ -107,7 +107,9 @@ alloc_proc(void) {
     	memset(proc, 0, sizeof(struct proc_struct));
     	proc->state = PROC_UNINIT;
     	proc->runs = 0;
-    	proc->need_resched = 1;
+    	// 记录一下这里的大坑, 如果need_resched设为1, 那么fork之后进程第一次运行的时候进行第一次系统调用就会被打断,
+    	// 会导致forktest这个测试用例中32个进程每个进程先打出一个'I'(因为printf使用cputc实现的), 通不过测试.
+    	proc->need_resched = 0;
     	proc->mm = NULL;
     	proc->tf = NULL;
     	proc->cr3 = boot_cr3;

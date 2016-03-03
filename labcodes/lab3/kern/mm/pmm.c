@@ -506,6 +506,7 @@ pgdir_alloc_page(pde_t *pgdir, uintptr_t la, uint32_t perm) {
             free_page(page);
             return NULL;
         }
+        cprintf("**************pgdir_alloc_page: check_mm_struct: 0x%08x, swap_init_ok: 0x%08x\n", &check_mm_struct, swap_init_ok);
         if (swap_init_ok){
             swap_map_swappable(check_mm_struct, la, page, 0);
             page->pra_vaddr=la;

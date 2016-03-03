@@ -86,11 +86,9 @@ default_init_memmap(struct Page *base, size_t n) {
     struct Page *p = base;
 
     for (; p != base + n; p ++) {
-        //SetPageProperty(p);
     	ClearPageReserved(p);
         p->property = 0;
         set_page_ref(p, 0);
-        //list_add_before(&free_list, &(p->page_link));
     }
     base->property = n;
     SetPageProperty(base);

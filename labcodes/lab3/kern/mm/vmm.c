@@ -271,7 +271,9 @@ check_pgfault(void) {
 
     mm->pgdir = NULL;
     mm_destroy(mm);
+    cprintf("--------------------check_mm_struct is NULL\n");
     check_mm_struct = NULL;
+    cprintf("0x%08x\n", check_mm_struct);
 
     assert(nr_free_pages_store == nr_free_pages());
 
@@ -396,7 +398,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
 			//(1）According to the mm AND addr, try to load the content of right disk page
 			//    into the memory which page managed.
 			if (!(ret = swap_in(mm, addr, &page))) {
-				cprintf("vmm.c::do_page_fault: swap in faild!\n");
+				cprintf("vmm.c::do_page_fault: swap in failed!\n");
 			}
 
 			//(2) According to the mm, addr AND page, setup the map of phy addr <---> logical addr

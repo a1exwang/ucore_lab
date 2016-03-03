@@ -351,7 +351,6 @@ check_pgfault(void) {
         sum -= *(char *)(addr + i);
     }
     assert(sum == 0);
-    cprintf("sdfs\n");
 
     page_remove(pgdir, ROUNDDOWN(addr, PGSIZE));
     free_page(pde2page(pgdir[0]));
