@@ -273,7 +273,7 @@ qemu-mon: $(UCOREIMG) $(SWAPIMG)
 qemu: $(UCOREIMG) $(SWAPIMG)
 	$(V)$(QEMU)  -no-reboot -parallel stdio $(QEMUOPTS) -serial null
 gdb: $(UCOREIMG) $(SWAPIMG)
-	$(V)$(QEMU) -S -s -parallel stdio $(QEMUOPTS) -serial null
+	$(V)$(QEMU) -S -s $(QEMUOPTS) -parallel stdio -serial null
 qemu-nox: $(UCOREIMG) $(SWAPIMG)
 	$(V)$(QEMU)  -no-reboot -serial mon:stdio $(QEMUOPTS) -nographic
 
