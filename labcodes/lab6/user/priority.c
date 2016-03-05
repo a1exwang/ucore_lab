@@ -5,7 +5,7 @@
 
 #define TOTAL 5
 /* to get enough accuracy, MAX_TIME (the running time of each process) should >1000 mseconds. */
-#define MAX_TIME  1000
+#define MAX_TIME  200 // was 1000
 unsigned int acc[TOTAL];
 int status[TOTAL];
 int pids[TOTAL];
@@ -35,8 +35,9 @@ main(void) {
                while (1) {
                     spin_delay();
                     ++ acc[i];
-                    if(acc[i]%4000==0) {
-                        if((time=gettime_msec())>MAX_TIME) {
+                    if(acc[i]%4000==0) { // was 4000
+                    	time=gettime_msec();
+                        if(time>MAX_TIME) {
                             cprintf("child pid %d, acc %d, time %d\n",getpid(),acc[i],time);
                             exit(acc[i]);
                         }

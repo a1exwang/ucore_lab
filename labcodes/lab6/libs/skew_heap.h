@@ -1,5 +1,6 @@
 #ifndef __LIBS_SKEW_HEAP_H__
 #define __LIBS_SKEW_HEAP_H__
+#include <stdio.h>
 
 struct skew_heap_entry {
      struct skew_heap_entry *parent, *left, *right;
@@ -66,12 +67,14 @@ skew_heap_insert(skew_heap_entry_t *a, skew_heap_entry_t *b,
      return skew_heap_merge(a, b, comp);
 }
 
-static inline skew_heap_entry_t *
+static skew_heap_entry_t *
 skew_heap_remove(skew_heap_entry_t *a, skew_heap_entry_t *b,
                  compare_f comp)
 {
      skew_heap_entry_t *p   = b->parent;
+     //cprintf("p: 0x%08x, a: 0x%08x, b: 0x%08x\n", p,a,b);
      skew_heap_entry_t *rep = skew_heap_merge(b->left, b->right, comp);
+     //cprintf("rep: 0x%08x\n", rep);
      if (rep) rep->parent = p;
      
      if (p)

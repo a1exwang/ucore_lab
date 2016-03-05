@@ -67,7 +67,7 @@
 
 /* You should define the BigStride constant here*/
 /* LAB6: YOUR CODE */
-#define BIG_STRIDE 1   /* you should give a value, and is ??? */
+#define BIG_STRIDE (1*2*3*4*5*6)   /* you should give a value, and is ??? */
 
 /* The compare function for two skew_heap_node_t's and the
  * corresponding procs*/
@@ -76,7 +76,9 @@ proc_stride_comp_f(void *a, void *b)
 {
      struct proc_struct *p = le2proc(a, lab6_run_pool);
      struct proc_struct *q = le2proc(b, lab6_run_pool);
-     int32_t c = p->lab6_stride - q->lab6_stride;
+     //int32_t c = p->lab6_stride - q->lab6_stride;
+     int32_t c = p->lab6_pass - q->lab6_pass;
+     //cprintf("p->pass: %d, q->pass: %d\n", p->lab6_pass, q->lab6_pass);
      if (c > 0) return 1;
      else if (c == 0) return 0;
      else return -1;
@@ -100,6 +102,11 @@ stride_init(struct run_queue *rq) {
       * (2) init the run pool: rq->lab6_run_pool
       * (3) set number of process: rq->proc_num to 0
       */
+	list_init(&rq->run_list);
+	rq->lab6_run_pool = kmalloc(sizeof(skew_heap_entry_t));
+	rq->lab6_run_pool = NULL;
+	rq->proc_num = 0;
+	rq->max_time_slice = 1;
 }
 
 /*
@@ -126,6 +133,27 @@ stride_enqueue(struct run_queue *rq, struct proc_struct *proc) {
       * (3) set proc->rq pointer to rq
       * (4) increase rq->proc_num
       */
+	proc->lab6_stride = proc->lab6_priority == 0 ? 2*BIG_STRIDE : BIG_STRIDE / proc->lab6_priority;
+	proc->time_slice = rq->max_time_slice;
+	proc->lab6_pass += proc->lab6_stride;
+
+	list_add(&rq->run_list, &proc->run_link);
+	//cprintf("enqueue pid %d\n", proc->pid);
+	if (rq->lab6_run_pool == NULL) {
+		//cprintf("queue empty!!!!!!!!!\n");
+		rq->lab6_run_pool = &proc->lab6_run_pool;
+	}
+	else {
+		rq->lab6_run_pool = skew_heap_insert(rq->lab6_run_pool, &proc->lab6_run_pool, proc_stride_comp_f);
+	}
+	struct proc_struct *root = le2proc(rq->lab6_run_pool, lab6_run_pool);
+	if (rq->lab6_run_pool->parent) {
+		struct proc_struct *rp = le2proc(rq->lab6_run_pool->parent, lab6_run_pool);
+		//cprintf("root is %d, root parent's pid %d\n", root->pid, rp->pid);
+		//cprintf("---------------root's parent: 0x%08x\n", rq->lab6_run_pool->parent);
+	}
+	proc->rq = rq;
+	rq->proc_num++;
 }
 
 /*
@@ -144,6 +172,17 @@ stride_dequeue(struct run_queue *rq, struct proc_struct *proc) {
       *         skew_heap_remove: remove a entry from skew_heap
       *         list_del_init: remove a entry from the  list
       */
+	//cprintf("dequeue pid %d\n", proc->pid);
+	list_del_init(&proc->run_link);
+	//cprintf("before remove: ");
+	//traverse_heap(rq->lab6_run_pool);
+	//cprintf("---------------root's parent: 0x%08x\n", rq->lab6_run_pool->parent);
+	rq->lab6_run_pool = skew_heap_remove(rq->lab6_run_pool, &proc->lab6_run_pool, proc_stride_comp_f);
+	//cprintf("after remove: ");
+	//traverse_heap(rq->lab6_run_pool);
+	proc->rq = NULL;
+ 	skew_heap_init( &proc->lab6_run_pool);
+	rq->proc_num--;
 }
 /*
  * stride_pick_next pick the element from the ``run-queue'', with the
@@ -167,6 +206,11 @@ stride_pick_next(struct run_queue *rq) {
       * (2) update p;s stride value: p->lab6_stride
       * (3) return p
       */
+	if (rq->lab6_run_pool == NULL)
+		return NULL;
+	struct proc_struct *proc = le2proc(rq->lab6_run_pool, lab6_run_pool);
+	//cprintf("pick next pid %d\n", proc->pid);
+	return proc;
 }
 
 /*
@@ -180,6 +224,45 @@ stride_pick_next(struct run_queue *rq) {
 static void
 stride_proc_tick(struct run_queue *rq, struct proc_struct *proc) {
      /* LAB6: YOUR CODE */
+	proc->time_slice--;
+	if (proc->time_slice <= 0) {
+		proc->need_resched = 1;
+	//	cprintf("timeslice is 0, reschedule for %d, pass: %d\n", proc->pid, proc->lab6_pass);
+	//	traverse_proc(&rq->run_list);
+	}
+	else {
+	//	cprintf("timeslice is %d for pid %d, pass: %d\n", proc->time_slice, proc->pid, proc->lab6_pass);
+	//	traverse_proc(&rq->run_list);
+	}
+}
+
+// debug functions
+void traverse_proc(list_entry_t *head) {
+	list_entry_t *p = head->next;
+	while (p != head) {
+
+		struct proc_struct *cur = le2proc(p, run_link);
+
+		cprintf("pid: %d, pass: %d, ", cur->pid, cur->lab6_pass);
+		p = p->next;
+	}
+	cprintf("\n");
+}
+void traverse_heap(skew_heap_entry_t *root) {
+	if (root == NULL) {
+		cprintf("NULL heap~~~\n");
+		return;
+	}
+
+	struct proc_struct *proc = le2proc(root, lab6_run_pool);
+	cprintf("pid: %d, pass: %d, ", proc->pid, proc->lab6_pass);
+	if (root->left != NULL) {
+		traverse_heap(root->left);
+	}
+	if (root->right != NULL) {
+		traverse_heap(root->right);
+	}
+	cprintf("\n");
 }
 
 struct sched_class default_sched_class = {

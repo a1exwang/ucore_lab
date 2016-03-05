@@ -158,7 +158,7 @@ print_regs(struct pushregs *regs) {
     cprintf("  eax  0x%08x\n", regs->reg_eax);
 }
 
-static uint32_t tick_count = 0;
+//static uint32_t tick_count = 0;
 static inline void
 print_pgfault(struct trapframe *tf) {
     /* error_code:
@@ -234,14 +234,15 @@ trap_dispatch(struct trapframe *tf) {
          * (2) Every TICK_NUM cycle, you can print some info using a funciton, such as print_ticks().
          * (3) Too Simple? Yes, I think so!
          */
-		tick_count++;
-		if (tick_count % TICK_NUM == 0) {
-			print_ticks();
+		ticks++;
+		if (ticks % TICK_NUM == 0) {
+			//print_ticks();
 	        /* LAB5 YOUR CODE */
 	        /* you should upate you lab1 code (just add ONE or TWO lines of code):
 	         *    Every TICK_NUM cycle, you should set current process's current->need_resched = 1
 	         */
-			current->need_resched = 1;
+			//current->need_resched = 1;
+
 		}
         /* LAB6 YOUR CODE */
         /* you should upate you lab5 code

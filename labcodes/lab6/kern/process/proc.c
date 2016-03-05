@@ -124,6 +124,13 @@ alloc_proc(void) {
 		 *     uint32_t lab6_stride;                       // FOR LAB6 ONLY: the current stride of the process
 		 *     uint32_t lab6_priority;                     // FOR LAB6 ONLY: the priority of process, set by lab6_set_priority(uint32_t)
 		 */
+    	proc->rq = NULL;
+    	list_init(&proc->run_link);
+    	proc->time_slice = 0;
+    	skew_heap_init(&proc->lab6_run_pool);
+    	proc->lab6_stride = 0;
+    	proc->lab6_priority = 0;
+    	proc->lab6_pass = 0;
     }
     return proc;
 }
@@ -428,6 +435,7 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     copy_thread(proc, stack, tf);
 
     proc->pid = get_pid();
+    proc->lab6_stride = proc->pid + 1;
     hash_proc(proc);
     set_links(proc);
     list_init(&proc->run_link);
