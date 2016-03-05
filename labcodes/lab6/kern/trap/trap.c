@@ -158,7 +158,6 @@ print_regs(struct pushregs *regs) {
     cprintf("  eax  0x%08x\n", regs->reg_eax);
 }
 
-//static uint32_t tick_count = 0;
 static inline void
 print_pgfault(struct trapframe *tf) {
     /* error_code:
@@ -250,6 +249,7 @@ trap_dispatch(struct trapframe *tf) {
 	     * sched_class_proc_tick
          */
 		sched_class_proc_tick(current);
+
         break;
     case IRQ_OFFSET + IRQ_COM1:
         c = cons_getc();

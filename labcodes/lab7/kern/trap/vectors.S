@@ -1,4 +1,5 @@
 # handler
+# 中断向量表中ISR的入口都在这里
 .text
 .globl __alltraps
 .globl vector0
@@ -1275,6 +1276,7 @@ vector255:
   jmp __alltraps
 
 # vector table
+# 中断向量表
 .data
 .globl __vectors
 __vectors:

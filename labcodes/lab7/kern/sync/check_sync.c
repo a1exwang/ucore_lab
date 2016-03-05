@@ -5,8 +5,8 @@
 #include <assert.h>
 
 #define N 5 /* 哲学家数目 */
-#define LEFT (i-1+N)%N /* i的左邻号码 */
-#define RIGHT (i+1)%N /* i的右邻号码 */
+#define LEFT ((i-1+N)%N) /* i的左邻号码 */
+#define RIGHT ((i+1)%N) /* i的右邻号码 */
 #define THINKING 0 /* 哲学家正在思考 */
 #define HUNGRY 1 /* 哲学家想取得叉子 */
 #define EATING 2 /* 哲学家正在吃面 */
@@ -171,16 +171,16 @@ void check_sync(void){
     int i;
 
     //check semaphore
-    sem_init(&mutex, 1);
-    for(i=0;i<N;i++){
-        sem_init(&s[i], 0);
-        int pid = kernel_thread(philosopher_using_semaphore, (void *)i, 0);
-        if (pid <= 0) {
-            panic("create No.%d philosopher_using_semaphore failed.\n");
-        }
-        philosopher_proc_sema[i] = find_proc(pid);
-        set_proc_name(philosopher_proc_sema[i], "philosopher_sema_proc");
-    }
+//    sem_init(&mutex, 1);
+//    for(i=0;i<N;i++){
+//        sem_init(&s[i], 0);
+//        int pid = kernel_thread(philosopher_using_semaphore, (void *)i, 0);
+//        if (pid <= 0) {
+//            panic("create No.%d philosopher_using_semaphore failed.\n");
+//        }
+//        philosopher_proc_sema[i] = find_proc(pid);
+//        set_proc_name(philosopher_proc_sema[i], "philosopher_sema_proc");
+//    }
 
     //check condition variable
     monitor_init(&mt, N);

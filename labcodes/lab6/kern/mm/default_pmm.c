@@ -172,7 +172,6 @@ default_free_pages(struct Page *base, size_t n) {
 done:
     nr_free += n;
     list_add(insert_point, &(base->page_link));
-    //cprintf("free_pages done\n"); print_freelist();
 }
 
 static size_t

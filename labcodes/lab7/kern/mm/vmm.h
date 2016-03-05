@@ -67,6 +67,8 @@ bool user_mem_check(struct mm_struct *mm, uintptr_t start, size_t len, bool writ
 bool copy_from_user(struct mm_struct *mm, void *dst, const void *src, size_t len, bool writable);
 bool copy_to_user(struct mm_struct *mm, void *dst, const void *src, size_t len);
 
+void print_vma(struct mm_struct *mm, const char *proc_name);
+
 static inline int
 mm_count(struct mm_struct *mm) {
     return mm->mm_count;
