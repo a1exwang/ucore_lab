@@ -49,6 +49,14 @@ void phi_put_forks_sema(int i) /* i：哲学家号码从0到N-1 */
         up(&mutex); /* 离开临界区 */
 }
 
+void print_sema() {
+	cprintf("sema: (");
+	for (int i = 0; i < N; ++i) {
+		cprintf("%d, ", state_sema[i]);
+	}
+	cprintf(")\n");
+}
+
 int philosopher_using_semaphore(void * arg) /* i：哲学家号码，从0到N-1 */
 {
     int i, iter=0;
@@ -57,10 +65,12 @@ int philosopher_using_semaphore(void * arg) /* i：哲学家号码，从0到N-1 
     while(iter++<TIMES)
     { /* 无限循环 */
         cprintf("Iter %d, No.%d philosopher_sema is thinking\n",iter,i); /* 哲学家正在思考 */
+        print_sema();
         do_sleep(SLEEP_TIME);
         phi_take_forks_sema(i); 
         /* 需要两只叉子，或者阻塞 */
         cprintf("Iter %d, No.%d philosopher_sema is eating\n",iter,i); /* 进餐 */
+        print_sema();
         do_sleep(SLEEP_TIME);
         phi_put_forks_sema(i); 
         /* 把两把叉子同时放回桌子 */
@@ -121,12 +131,12 @@ void phi_test_condvar (i) {
 void phi_take_forks_condvar(int i) {
      down(&(mtp->mutex));
 //--------into routine in monitor--------------
-     // LAB7 EXERCISE1: YOUR CODE
+     // LAB7 EXERCISE1: 2014011367
      // I am hungry
      // try to get fork
-     cond_wait(mtp->cv+i);
-     state_condvar[i] = HUNGRY;
-     phi_test_condvar(i);
+//     cond_wait(mtp->cv+i);
+//     state_condvar[i] = HUNGRY;
+//     phi_test_condvar(i);
 //--------leave routine in monitor--------------
       if(mtp->next_count>0)
          up(&(mtp->next));
@@ -138,13 +148,13 @@ void phi_put_forks_condvar(int i) {
      down(&(mtp->mutex));
 
 //--------into routine in monitor--------------
-     // LAB7 EXERCISE1: YOUR CODE
+     // LAB7 EXERCISE1: 2014011367
      // I ate over
      // test left and right neighbors
-     state_sema[i]=THINKING;
-     phi_test_condvar(LEFT);
-     phi_test_condvar(RIGHT);
-     cond_signal(mtp->cv+i);
+//     state_sema[i]=THINKING;
+//     phi_test_condvar(LEFT);
+//     phi_test_condvar(RIGHT);
+//     cond_signal(mtp->cv+i);
 //--------leave routine in monitor--------------
      if(mtp->next_count>0)
         up(&(mtp->next));
@@ -178,26 +188,26 @@ void check_sync(void){
     int i;
 
     //check semaphore
-//    sem_init(&mutex, 1);
-//    for(i=0;i<N;i++){
-//        sem_init(&s[i], 0);
-//        int pid = kernel_thread(philosopher_using_semaphore, (void *)i, 0);
-//        if (pid <= 0) {
-//            panic("create No.%d philosopher_using_semaphore failed.\n");
-//        }
-//        philosopher_proc_sema[i] = find_proc(pid);
-//        set_proc_name(philosopher_proc_sema[i], "philosopher_sema_proc");
-//    }
+    sem_init(&mutex, 1);
+    for(i=0;i<N;i++){
+        sem_init(&s[i], 0);
+        int pid = kernel_thread(philosopher_using_semaphore, (void *)i, 0);
+        if (pid <= 0) {
+            panic("create No.%d philosopher_using_semaphore failed.\n");
+        }
+        philosopher_proc_sema[i] = find_proc(pid);
+        set_proc_name(philosopher_proc_sema[i], "philosopher_sema_proc");
+    }
 
     //check condition variable
-    monitor_init(&mt, N);
-    for(i=0;i<N;i++){
-        state_condvar[i]=THINKING;
-        int pid = kernel_thread(philosopher_using_condvar, (void *)i, 0);
-        if (pid <= 0) {
-            panic("create No.%d philosopher_using_condvar failed.\n");
-        }
-        philosopher_proc_condvar[i] = find_proc(pid);
-        set_proc_name(philosopher_proc_condvar[i], "philosopher_condvar_proc");
-    }
+//    monitor_init(&mt, N);
+//    for(i=0;i<N;i++){
+//        state_condvar[i]=THINKING;
+//        int pid = kernel_thread(philosopher_using_condvar, (void *)i, 0);
+//        if (pid <= 0) {
+//            panic("create No.%d philosopher_using_condvar failed.\n");
+//        }
+//        philosopher_proc_condvar[i] = find_proc(pid);
+//        set_proc_name(philosopher_proc_condvar[i], "philosopher_condvar_proc");
+//    }
 }
