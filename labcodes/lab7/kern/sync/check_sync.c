@@ -123,38 +123,46 @@ void phi_test_condvar (i) {
         cprintf("phi_test_condvar: state_condvar[%d] will eating\n",i);
         state_condvar[i] = EATING ;
         cprintf("phi_test_condvar: signal self_cv[%d] \n",i);
-        cond_signal(&mtp->cv[i]) ;
+        cond_signal(&mtp->cv[i]);
     }
 }
 
-
 void phi_take_forks_condvar(int i) {
-     down(&(mtp->mutex));
+    down(&(mtp->mutex));
 //--------into routine in monitor--------------
-     // LAB7 EXERCISE1: 2014011367
-     // I am hungry
-     // try to get fork
-//     cond_wait(mtp->cv+i);
-//     state_condvar[i] = HUNGRY;
-//     phi_test_condvar(i);
+    // LAB7 EXERCISE1: 2014011367
+    // I am hungry
+    // try to get fork
+
+    state_condvar[i] = HUNGRY;
+    // If I successfully get the forks, eat!
+    // Or I have to wait (and leave the critical section until a signal is raised.)
+    if(state_condvar[LEFT] != EATING && state_condvar[RIGHT] != EATING) {
+        state_condvar[i] = EATING;
+    }
+    else {
+    	// If `cond_wait` returns,
+    	// there must be someone who finishes eating,
+    	// sets my state to EATING and signals me(by calling `phi_test_condvar`).
+    	cond_wait(&mtp->cv[i]);
+    }
+
 //--------leave routine in monitor--------------
-      if(mtp->next_count>0)
-         up(&(mtp->next));
-      else
-         up(&(mtp->mutex));
+	if(mtp->next_count>0)
+		up(&(mtp->next));
+	else
+		up(&(mtp->mutex));
 }
 
 void phi_put_forks_condvar(int i) {
      down(&(mtp->mutex));
-
 //--------into routine in monitor--------------
      // LAB7 EXERCISE1: 2014011367
      // I ate over
      // test left and right neighbors
-//     state_sema[i]=THINKING;
-//     phi_test_condvar(LEFT);
-//     phi_test_condvar(RIGHT);
-//     cond_signal(mtp->cv+i);
+     state_condvar[i]=THINKING;
+     phi_test_condvar(LEFT);
+     phi_test_condvar(RIGHT);
 //--------leave routine in monitor--------------
      if(mtp->next_count>0)
         up(&(mtp->next));
@@ -200,14 +208,14 @@ void check_sync(void){
     }
 
     //check condition variable
-//    monitor_init(&mt, N);
-//    for(i=0;i<N;i++){
-//        state_condvar[i]=THINKING;
-//        int pid = kernel_thread(philosopher_using_condvar, (void *)i, 0);
-//        if (pid <= 0) {
-//            panic("create No.%d philosopher_using_condvar failed.\n");
-//        }
-//        philosopher_proc_condvar[i] = find_proc(pid);
-//        set_proc_name(philosopher_proc_condvar[i], "philosopher_condvar_proc");
-//    }
+    monitor_init(&mt, N);
+    for(i=0;i<N;i++){
+        state_condvar[i]=THINKING;
+        int pid = kernel_thread(philosopher_using_condvar, (void *)i, 0);
+        if (pid <= 0) {
+            panic("create No.%d philosopher_using_condvar failed.\n");
+        }
+        philosopher_proc_condvar[i] = find_proc(pid);
+        set_proc_name(philosopher_proc_condvar[i], "philosopher_condvar_proc");
+    }
 }
