@@ -324,7 +324,9 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     	goto bad_fork_cleanup_proc;
     }
 
-    copy_thread(proc, proc->kstack + KSTACKSIZE, tf);
+    proc->parent = current;
+
+    copy_thread(proc, stack, tf);
 
     proc->pid = get_pid();
     list_add(&proc_list, &proc->list_link);
