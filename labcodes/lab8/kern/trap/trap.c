@@ -33,7 +33,8 @@ static void print_ticks() {
  * Must be built at run time because shifted function addresses can't
  * be represented in relocation records.
  * */
-static struct gatedesc idt[256] = {{0}};
+#define IDT_COUNT 256
+static struct gatedesc idt[IDT_COUNT] = {{0}};
 
 static struct pseudodesc idt_pd = {
     sizeof(idt) - 1, (uintptr_t)idt
@@ -220,20 +221,30 @@ trap_dispatch(struct trapframe *tf) {
          * (2) Every TICK_NUM cycle, you can print some info using a funciton, such as print_ticks().
          * (3) Too Simple? Yes, I think so!
          */
-        /* LAB5 YOUR CODE */
-        /* you should upate you lab1 code (just add ONE or TWO lines of code):
-         *    Every TICK_NUM cycle, you should set current process's current->need_resched = 1
-         */
+		ticks++;
+		if (ticks % TICK_NUM == 0) {
+			//print_ticks();
+	        /* LAB5 YOUR CODE */
+	        /* you should upate you lab1 code (just add ONE or TWO lines of code):
+	         *    Every TICK_NUM cycle, you should set current process's current->need_resched = 1
+	         */
+			//current->need_resched = 1;
+
+		}
         /* LAB6 YOUR CODE */
         /* you should upate you lab5 code
          * IMPORTANT FUNCTIONS:
 	     * sched_class_proc_tick
-         */         
+         */
+		sched_class_proc_tick(current);
+
         /* LAB7 YOUR CODE */
         /* you should upate you lab6 code
          * IMPORTANT FUNCTIONS:
 	     * run_timer_list
          */
+		run_timer_list();
+		
         break;
     case IRQ_OFFSET + IRQ_COM1:
     case IRQ_OFFSET + IRQ_KBD:
@@ -279,6 +290,7 @@ trap(struct trapframe *tf) {
     }
     else {
         // keep a trapframe chain in stack
+    	// 这步备份tf主要是当发生中断重入时能返回到上一层中断
         struct trapframe *otf = current->tf;
         current->tf = tf;
     

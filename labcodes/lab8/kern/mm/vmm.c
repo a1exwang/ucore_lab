@@ -117,14 +117,14 @@ insert_vma_struct(struct mm_struct *mm, struct vma_struct *vma) {
     list_entry_t *list = &(mm->mmap_list);
     list_entry_t *le_prev = list, *le_next;
 
-        list_entry_t *le = list;
-        while ((le = list_next(le)) != list) {
-            struct vma_struct *mmap_prev = le2vma(le, list_link);
-            if (mmap_prev->vm_start > vma->vm_start) {
-                break;
-            }
-            le_prev = le;
-        }
+	list_entry_t *le = list;
+	while ((le = list_next(le)) != list) {
+		struct vma_struct *mmap_prev = le2vma(le, list_link);
+		if (mmap_prev->vm_start > vma->vm_start) {
+			break;
+		}
+		le_prev = le;
+	}
 
     le_next = list_next(le_prev);
 
@@ -434,7 +434,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     ret = -E_NO_MEM;
 
     pte_t *ptep=NULL;
-    /*LAB3 EXERCISE 1: YOUR CODE
+    /*LAB3 EXERCISE 1: 2014011367
     * Maybe you want help comment, BELOW comments can help you finish the code
     *
     * Some Useful MACROs and DEFINEs, you can use them in below implementation.
@@ -451,48 +451,52 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     *   mm->pgdir : the PDT of these vma
     *
     */
-#if 0
-    /*LAB3 EXERCISE 1: YOUR CODE*/
-    ptep = ???              //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
-    if (*ptep == 0) {
-                            //(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
 
+    /*LAB3 EXERCISE 1: 2014011367 */
+    //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
+    ptep = get_pte(mm->pgdir, addr, 1);
+    if (!ptep) {
+    	panic("vmm.c::do_page_fault: no free physical memory\n");
+    }
+
+    if (*ptep == 0) {
+    	//(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
+    	struct Page *page = pgdir_alloc_page(mm->pgdir, addr, perm, mm);
+    	if (!page) {
+    		panic("vmm.c::do_page_fault: pgdir_alloc_page returns 0\n");
+    	}
     }
     else {
-    /*LAB3 EXERCISE 2: YOUR CODE
-    * Now we think this pte is a  swap entry, we should load data from disk to a page with phy addr,
-    * and map the phy addr with logical addr, trigger swap manager to record the access situation of this page.
-    *
-    *  Some Useful MACROs and DEFINEs, you can use them in below implementation.
-    *  MACROs or Functions:
-    *    swap_in(mm, addr, &page) : alloc a memory page, then according to the swap entry in PTE for addr,
-    *                               find the addr of disk page, read the content of disk page into this memroy page
-    *    page_insert ： build the map of phy addr of an Page with the linear addr la
-    *    swap_map_swappable ： set the page swappable
-    */
-    /*
-     * LAB5 CHALLENGE ( the implmentation Copy on Write)
-		There are 2 situlations when code comes here.
-		  1) *ptep & PTE_P == 1, it means one process try to write a readonly page. 
-		     If the vma includes this addr is writable, then we can set the page writable by rewrite the *ptep.
-		     This method could be used to implement the Copy on Write (COW) thchnology(a fast fork process method).
-		  2) *ptep & PTE_P == 0 & but *ptep!=0, it means this pte is a  swap entry.
-		     We should add the LAB3's results here.
-     */
-        if(swap_init_ok) {
-            struct Page *page=NULL;
-                                    //(1）According to the mm AND addr, try to load the content of right disk page
-                                    //    into the memory which page managed.
-                                    //(2) According to the mm, addr AND page, setup the map of phy addr <---> logical addr
-                                    //(3) make the page swappable.
-                                    //(4) [NOTICE]: you myabe need to update your lab3's implementation for LAB5's normal execution.
-        }
-        else {
-            cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
-            goto failed;
-        }
+		/*LAB3 EXERCISE 2: 2014011367
+		* Now we think this pte is a  swap entry, we should load data from disk to a page with phy addr,
+		* and map the phy addr with logical addr, trigger swap manager to record the access situation of this page.
+		*
+		*  Some Useful MACROs and DEFINEs, you can use them in below implementation.
+		*  MACROs or Functions:
+		*    swap_in(mm, addr, &page) : alloc a memory page, then according to the swap entry in PTE for addr,
+		*                               find the addr of disk page, read the content of disk page into this memroy page
+		*    page_insert ： build the map of phy addr of an Page with the linear addr la
+		*    swap_map_swappable ： set the page swappable
+		*/
+		if(swap_init_ok) {
+			struct Page *page = NULL;
+			//(1）According to the mm AND addr, try to load the content of right disk page
+			//    into the memory which page managed.
+			if ((ret = swap_in(mm, addr, &page)) != 0) {
+				cprintf("vmm.c::do_page_fault: swap in faild!\n");
+			}
+
+			//(2) According to the mm, addr AND page, setup the map of phy addr <---> logical addr
+			//(3) make the page swappable.
+            page_insert(mm->pgdir, page, addr, perm);
+            swap_map_swappable(mm, addr, page, 1);
+            page->pra_vaddr = addr;
+		}
+		else {
+			cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
+			goto failed;
+		}
    }
-#endif
    ret = 0;
 failed:
     return ret;
@@ -525,6 +529,23 @@ user_mem_check(struct mm_struct *mm, uintptr_t addr, size_t len, bool write) {
     return KERN_ACCESS(addr, addr + len);
 }
 
+void
+print_vma(struct mm_struct *mm, const char *proc_name) {
+    list_entry_t *list = &(mm->mmap_list);
+	list_entry_t *le = list;
+
+	if (proc_name != NULL) {
+		cprintf("[vmm] Print all vma, for %s...\n", proc_name);
+	}
+	else {
+		cprintf("[vmm] Print all vma...\n");
+	}
+
+	while ((le = list_next(le)) != list) {
+		struct vma_struct *vma = le2vma(le, list_link);
+		cprintf("\tStart: 0x%08x, End: 0x%08x, Flags: 0x%x\n", vma->vm_start, vma->vm_end, vma->vm_flags);
+	}
+}
 bool
 copy_string(struct mm_struct *mm, char *dst, const char *src, size_t maxn) {
     size_t alen, part = ROUNDDOWN((uintptr_t)src + PGSIZE, PGSIZE) - (uintptr_t)src;
