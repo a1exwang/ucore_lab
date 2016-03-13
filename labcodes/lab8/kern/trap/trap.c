@@ -55,6 +55,18 @@ idt_init(void) {
       *     You don't know the meaning of this instruction? just google it! and check the libs/x86.h to know more.
       *     Notice: the argument of lidt is idt_pd. try to find it!
       */
+	extern uintptr_t __vectors[];
+	int i;
+	int is_trap = 0, dpl = 0;
+	for (i = 0; i < IDT_COUNT; ++i) {
+		if (i == T_SYSCALL) {
+			is_trap = 1;
+			dpl = 3;
+		}
+		SETGATE(idt[i], is_trap, KERNEL_CS, __vectors[i], dpl);
+	}
+	lidt(&idt_pd);
+
      /* LAB5 YOUR CODE */ 
      //you should update your lab1 code (just add ONE or TWO lines of code), let user app to use syscall to get the service of ucore
      //so you should setup the syscall interrupt gate in here
